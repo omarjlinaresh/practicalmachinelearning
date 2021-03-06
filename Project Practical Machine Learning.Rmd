@@ -1,0 +1,92 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Omar Linares"
+date: "6/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+BACKGROUND
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+```{r warning=FALSE}
+library(ggplot2);
+library(caret);
+library(randomForest);
+library(rattle)
+```
+
+The first step was to import the data to R, and then delete the columns with the majority of Na`s
+
+```{r}
+trainingset <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!", ""))
+testingset <- read.csv("pml-testing.csv", na.strings=c("NA","#DIV/0!", ""))
+trainingset<-trainingset[,colSums(is.na(trainingset)) == 0]
+testingset <-testingset[,colSums(is.na(testingset)) == 0]
+trainingset   <-trainingset[,-c(1:7)]
+testingset <-testingset[,-c(1:7)]
+```
+
+The next step was to create the data partition
+
+```{r}
+train <- createDataPartition(y=trainingset$classe, p=0.75, list=FALSE)
+TrainS <- trainingset[train, ] 
+TestS <- trainingset[-train, ]
+```
+
+The first method I used was the “Decision Tree”
+
+```{r}
+modFit<-train(classe~.,method="rpart",data=TrainS)
+print(modFit$finalModel)
+fancyRpartPlot(modFit$finalModel)
+modFit
+```
+
+```{r}
+pred<-predict(modFit,newdata=TestS)
+TestS$predRight<-pred==TestS$classe
+table(pred,TestS$classe)
+```
+After these results i create a new model by using Random Forest
+
+```{r}
+set.seed(2021)
+modelfit2 <- train(classe ~ ., method = "ranger", data = TrainS)
+
+```
+
+
+```{r}
+modelfit2
+```
+
+The model seems to be pretty more accurate so we try to predict the classe of the TestSet
+
+```{r}
+pred<-predict(modelfit2,TestS)
+TestS$predRight<-pred==TestS$classe
+```
+
+we create the predictions and then create a table comparing the prediction VS the actual classe of the observations
+
+```{r}
+table(pred,TestS$classe)
+```
+
+As we can see there are a few miss classifications but in proportion to the ones the model correctly predicted the errors are really small.
+
+Comparing these two models the decision seems to be obvious , the RANDOM FOREST model is the one we will use to Find the classe on the TEST data as it is the one with the highest accuracy.
+
+Using the TEST data set we will now predict the classe variable using the Random Forest model in order to get the best accuracy possible.
+
+```{r}
+final<-predict(modelfit2,testingset)
+final
+```
+
+After seeing these result this would be all regarding the project about prediction.
